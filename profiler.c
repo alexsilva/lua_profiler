@@ -46,6 +46,9 @@ void callhook(lua_State *L, lua_Function func, char *file, int line) {
             lua_pushuserdata(L, array); // Saves the new reference.
             META_REF = lua_ref(L, 1);
             MEM_BLOCKSIZE = blocksize; // Updates the size of the memory block.
+        } else {
+            lua_error(L, "profiler: out of memory!");
+            return; // suppress inspect
         }
     }
 
