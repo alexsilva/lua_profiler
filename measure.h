@@ -10,7 +10,7 @@
 
 struct MEASURE {
     clock_t begin, end;
-    double time_spent;
+    float time_spent;
 };
 
 typedef struct MEASURE Measure;
@@ -28,7 +28,7 @@ struct META {
 
 typedef struct META Meta;
 
-double calc_time_spent(Measure *measure);
+float calc_time_spent(Measure *measure);
 
 extern int META_REF;
 extern int STACK_INDEX;
