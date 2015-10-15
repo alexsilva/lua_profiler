@@ -90,6 +90,15 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
     }
 }
 
+static void profile_start(lua_State *L) {
+    Meta *meta = malloc(MEM_BLOCKSIZE * sizeof(Meta));
+
+    lua_pushuserdata(L, meta);
+    META_REF = lua_ref(L, 1);
+
+    lua_setcallhook(L, callhook);
+}
+
 static void profile_end(lua_State *L) {
     free_array(get_metadata_array(L));
 }
@@ -129,14 +138,8 @@ static void profile_show_text(lua_State *L) {
 }
 
 LUA_API int luaopen_profiler(lua_State *L) {
+    lua_register(L, "profile_start", profile_start);
     lua_register(L, "profile_end", profile_end);
     lua_register(L, "profile_show_text", profile_show_text);
-
-    Meta *meta = malloc(MEM_BLOCKSIZE * sizeof(Meta));
-
-    lua_pushuserdata(L, meta);
-    META_REF = lua_ref(L, 1);
-
-    lua_setcallhook(L, callhook);
     return 0;
 }
