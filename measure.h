@@ -21,6 +21,7 @@ struct META {
     char *fun_scope;
     char *func_file;
 
+    int stack_level;
     int line;
 };
 

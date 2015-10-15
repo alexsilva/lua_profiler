@@ -29,7 +29,8 @@ void callhook(lua_State *L, lua_Function func, char *file, int line) {
 
         func_scope = lua_getobjname(L, func, &func_name);
 
-        //printf("name: %s | func_scope: %s | source: %s | line: %i\n", func_name, func_scope, file, line);
+        //printf("[%i] name: %s | func_scope: %s | source: %s | line: %i\n",
+        //       STACK_SIZE, func_name, func_scope, file, line);
 
         Measure *measure = malloc(sizeof(Measure));
         measure->begin = clock();
@@ -39,6 +40,7 @@ void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta.fun_name = func_name;
         meta.fun_scope = func_scope;
         meta.func_file = file;
+        meta.stack_level = STACK_SIZE;
         meta.line = line;
 
         meta.measure = measure;
@@ -64,14 +66,27 @@ void profile_end(lua_State *L) {
     free(meta);
 }
 
+static char *fill_buff(char *buffer, int buffsize, char c) {
+    if (buffsize > 1)
+        memset(buffer, c, (size_t) buffsize);
+    buffer[buffsize - 1] = '\0';
+    return buffer;
+}
+
 void profile_show(lua_State *L) {
     Meta *array = get_metadata_array(L);
     Meta meta;
-    int index;
+
+    int index, buffsize;
+
     for (index = 0; index < STACK_INDEX; index++) {
         meta = array[index];
 
-        printf("(%i) name: %s (%s) source: (%s) spent: (%.3f s) \n",
+        buffsize = meta.stack_level + 1;
+        char buffer[buffsize];
+
+        printf("%s(%i) name: %s (%s) source: (%s) spent: (%.3f s) \n",
+               fill_buff(buffer, buffsize, '\t'),
                meta.line,
                meta.fun_name,
                meta.fun_scope,
@@ -91,7 +106,5 @@ LUA_API int luaopen_profiler(lua_State *L) {
     META_REF = lua_ref(L, 1);
 
     lua_setcallhook(L, callhook);
-
-
     return 0;
 }
