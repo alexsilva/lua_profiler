@@ -110,6 +110,7 @@ static void profile_start(lua_State *L) {
 
 static void profile_end(lua_State *L) {
     check_start(L);
+    lua_setcallhook(L, NULL); // disable hook
     free_array(get_metadata_array(L));
 }
 
