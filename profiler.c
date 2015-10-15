@@ -12,6 +12,7 @@
 int META_REF = 0;
 int STACK_INDEX = 0;
 int STACK_SIZE = 0;
+int MEM_BLOCKSIZE = 100;
 
 
 /* METADATA */
@@ -22,6 +23,20 @@ Meta *get_metadata_array(lua_State *L) {
 /* CALL FUNCTION HOOK */
 void callhook(lua_State *L, lua_Function func, char *file, int line) {
     Meta *array = get_metadata_array(L);
+
+    if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
+        // Reached memory limit, relocated to double.
+        int blocksize = MEM_BLOCKSIZE * 2;
+
+        array = realloc(array, blocksize * sizeof(Meta));
+
+        if (array) {
+            lua_unref(L, META_REF); // Remove the old reference (new block of memory).
+            lua_pushuserdata(L, array); // Saves the new reference.
+            META_REF = lua_ref(L, 1);
+            MEM_BLOCKSIZE = blocksize; // Updates the size of the memory block.
+        }
+    }
 
     if (lua_isfunction(L, func)) {
         char *func_name;
@@ -100,7 +115,7 @@ LUA_API int luaopen_profiler(lua_State *L) {
     lua_register(L, "profile_end", profile_end);
     lua_register(L, "profile_show", profile_show);
 
-    Meta *meta = malloc(100 * sizeof(Meta));
+    Meta *meta = malloc(MEM_BLOCKSIZE * sizeof(Meta));
 
     lua_pushuserdata(L, meta);
     META_REF = lua_ref(L, 1);

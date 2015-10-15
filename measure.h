@@ -32,5 +32,6 @@ double calc_time_spent(Measure *measure);
 extern int META_REF;
 extern int STACK_INDEX;
 extern int STACK_SIZE;
+extern int MEM_BLOCKSIZE;
 
 #endif //LUA_PROFILER_MEASURE_H
