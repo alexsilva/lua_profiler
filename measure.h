@@ -6,6 +6,7 @@
 #define LUA_PROFILER_MEASURE_H
 
 #include <time.h>
+#include <stdbool.h>
 
 struct MEASURE {
     clock_t begin, end;
@@ -33,5 +34,6 @@ extern int META_REF;
 extern int STACK_INDEX;
 extern int STACK_SIZE;
 extern int MEM_BLOCKSIZE;
+extern bool PROFILE_INIT;
 
 #endif //LUA_PROFILER_MEASURE_H

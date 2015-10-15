@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include "measure.h"
 
+bool PROFILE_INIT = false;
+
 int META_REF = 0;
 int STACK_INDEX = 0;
 int STACK_SIZE = 0;
@@ -31,8 +33,14 @@ static void free_array(Meta * array) {
     free(array);
 }
 
+static void check_start(lua_State *L) {
+    if (!PROFILE_INIT)
+        lua_error(L, "profile not started. call 'profile_start' first!");
+}
+
 /* CALL FUNCTION HOOK */
 static void callhook(lua_State *L, lua_Function func, char *file, int line) {
+    check_start(L);
     Meta *array = get_metadata_array(L);
 
     if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
@@ -97,9 +105,11 @@ static void profile_start(lua_State *L) {
     META_REF = lua_ref(L, 1);
 
     lua_setcallhook(L, callhook);
+    PROFILE_INIT = true;
 }
 
 static void profile_end(lua_State *L) {
+    check_start(L);
     free_array(get_metadata_array(L));
 }
 
@@ -111,6 +121,7 @@ static char *fill_buff(char *buffer, int buffsize, char c) {
 }
 
 static void profile_show_text(lua_State *L) {
+    check_start(L);
     lua_Object lobj = lua_getparam(L, 1);
     char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
 
