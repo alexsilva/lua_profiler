@@ -7,6 +7,7 @@
 #include <luadebug.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <lauxlib.h>
 #include "measure.h"
 
 bool PROFILE_INIT = false;
@@ -22,7 +23,7 @@ static Meta *get_metadata_array(lua_State *L) {
     return lua_getuserdata(L, lua_getref(L, META_REF));
 }
 
-static void free_array(Meta * array) {
+static void free_array(Meta *array) {
     int index;
     Meta meta;
     for (index = 0; index < STACK_INDEX; index++) {
@@ -119,11 +120,15 @@ static void profile_end(lua_State *L) {
     PROFILE_INIT = false;
 }
 
-static char *fill_buff(char *buffer, int buffsize, char c) {
-    if (buffsize > 1)
-        memset(buffer, c, (size_t) buffsize);
-    buffer[buffsize - 1] = '\0';
-    return buffer;
+char *repeat_str(char *str, size_t count) {
+    if (count == 0) return NULL;
+    char *ret = malloc((strlen(str) * count) + 1);
+    if (ret == NULL) return NULL;
+    strcpy(ret, str);
+    while (--count > 0) {
+        strcat(ret, str);
+    }
+    return ret;
 }
 
 static void profile_show_text(lua_State *L) {
@@ -131,19 +136,23 @@ static void profile_show_text(lua_State *L) {
     lua_Object lobj = lua_getparam(L, 1);
     char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
 
+    lobj = lua_getparam(L, 2);
+    char *offsetc = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\t";
+    char *offsettext;
+
     Meta meta;
     Meta *array = get_metadata_array(L);
 
-    int index, buffsize;
+    int index;
 
     for (index = 0; index < STACK_INDEX; index++) {
         meta = array[index];
 
-        buffsize = meta.stack_level + 1;
-        char buffer[buffsize];
+        offsettext = repeat_str(offsetc, (size_t) meta.stack_level);
+        if (!offsettext) offsettext = ""; //  security
 
-        printf("%s(%i) name: %s (%s) source: (%s) spent: (%.3f s)%s",
-               fill_buff(buffer, buffsize, '\t'),
+        printf("%s %i | %s (%s) source: (%s) time: (%.3fs)%s",
+               offsettext,
                meta.line,
                meta.fun_name,
                meta.fun_scope,
@@ -151,6 +160,7 @@ static void profile_show_text(lua_State *L) {
                meta.measure->time_spent,
                breakln
         );
+        free(offsettext);
     }
 }
 
