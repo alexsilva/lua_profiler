@@ -20,6 +20,17 @@ Meta *get_metadata_array(lua_State *L) {
     return lua_getuserdata(L, lua_getref(L, META_REF));
 }
 
+static void free_array(Meta * array) {
+    int index;
+    Meta meta;
+    for (index = 0; index < STACK_INDEX; index++) {
+        meta = array[index];
+        free(meta.measure); // internal cleaning
+    }
+    // free the main object
+    free(array);
+}
+
 /* CALL FUNCTION HOOK */
 void callhook(lua_State *L, lua_Function func, char *file, int line) {
     Meta *array = get_metadata_array(L);
@@ -77,8 +88,7 @@ void callhook(lua_State *L, lua_Function func, char *file, int line) {
 }
 
 void profile_end(lua_State *L) {
-    Meta *meta = get_metadata_array(L);
-    free(meta);
+    free_array(get_metadata_array(L));
 }
 
 static char *fill_buff(char *buffer, int buffsize, char c) {
