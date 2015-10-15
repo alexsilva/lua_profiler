@@ -99,6 +99,8 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
 }
 
 static void profile_start(lua_State *L) {
+    if (PROFILE_INIT)
+        return; // already started.
     Meta *meta = malloc(MEM_BLOCKSIZE * sizeof(Meta));
 
     lua_pushuserdata(L, meta);
