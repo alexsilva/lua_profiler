@@ -144,6 +144,7 @@ static void profile_show_text(lua_State *L) {
     Meta *array = get_metadata_array(L);
 
     int index;
+    float time_total = 0;
 
     for (index = 0; index < STACK_INDEX; index++) {
         meta = array[index];
@@ -160,8 +161,10 @@ static void profile_show_text(lua_State *L) {
                meta.measure->time_spent,
                breakln
         );
+        time_total += meta.measure->time_spent;
         free(offsettext);
     }
+    printf("TOTAL TIME SPENT: %.3f%s", time_total, breakln);
 }
 
 LUA_API int luaopen_profiler(lua_State *L) {
