@@ -42,6 +42,7 @@ static void check_start(lua_State *L) {
 static void callhook(lua_State *L, lua_Function func, char *file, int line) {
     check_start(L);
     Meta *array = get_metadata_array(L);
+    if (!array) return; // check if exists (call profile_end ?)
 
     if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
         // Reached memory limit, relocated to double.
@@ -114,6 +115,8 @@ static void profile_end(lua_State *L) {
     check_start(L);
     lua_setcallhook(L, NULL); // disable hook
     free_array(get_metadata_array(L));
+    lua_unref(L, META_REF); // Remove the old reference (new block of memory).
+    PROFILE_INIT = false;
 }
 
 static char *fill_buff(char *buffer, int buffsize, char c) {
