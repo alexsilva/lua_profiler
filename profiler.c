@@ -101,9 +101,12 @@ static char *fill_buff(char *buffer, int buffsize, char c) {
     return buffer;
 }
 
-void profile_show(lua_State *L) {
-    Meta *array = get_metadata_array(L);
+void profile_show_text(lua_State *L) {
+    lua_Object lobj = lua_getparam(L, 1);
+    char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
+
     Meta meta;
+    Meta *array = get_metadata_array(L);
 
     int index, buffsize;
 
@@ -113,20 +116,21 @@ void profile_show(lua_State *L) {
         buffsize = meta.stack_level + 1;
         char buffer[buffsize];
 
-        printf("%s(%i) name: %s (%s) source: (%s) spent: (%.3f s) \n",
+        printf("%s(%i) name: %s (%s) source: (%s) spent: (%.3f s)%s",
                fill_buff(buffer, buffsize, '\t'),
                meta.line,
                meta.fun_name,
                meta.fun_scope,
                meta.func_file,
-               meta.measure->time_spent
+               meta.measure->time_spent,
+               breakln
         );
     }
 }
 
 LUA_API int luaopen_profiler(lua_State *L) {
     lua_register(L, "profile_end", profile_end);
-    lua_register(L, "profile_show", profile_show);
+    lua_register(L, "profile_show_text", profile_show_text);
 
     Meta *meta = malloc(MEM_BLOCKSIZE * sizeof(Meta));
 
