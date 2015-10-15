@@ -16,7 +16,7 @@ int MEM_BLOCKSIZE = 100;
 
 
 /* METADATA */
-Meta *get_metadata_array(lua_State *L) {
+static Meta *get_metadata_array(lua_State *L) {
     return lua_getuserdata(L, lua_getref(L, META_REF));
 }
 
@@ -32,7 +32,7 @@ static void free_array(Meta * array) {
 }
 
 /* CALL FUNCTION HOOK */
-void callhook(lua_State *L, lua_Function func, char *file, int line) {
+static void callhook(lua_State *L, lua_Function func, char *file, int line) {
     Meta *array = get_metadata_array(L);
 
     if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
@@ -90,7 +90,7 @@ void callhook(lua_State *L, lua_Function func, char *file, int line) {
     }
 }
 
-void profile_end(lua_State *L) {
+static void profile_end(lua_State *L) {
     free_array(get_metadata_array(L));
 }
 
@@ -101,7 +101,7 @@ static char *fill_buff(char *buffer, int buffsize, char c) {
     return buffer;
 }
 
-void profile_show_text(lua_State *L) {
+static void profile_show_text(lua_State *L) {
     lua_Object lobj = lua_getparam(L, 1);
     char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
 
