@@ -8,6 +8,11 @@
 #include "render.h"
 #include "measure.h"
 
+#ifdef _WIN32
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
 
 static char *PAGE =
 "<html>"
@@ -38,10 +43,10 @@ static char *ITEM_HTML_END = "</div></div>";
 
 static char *read_resource(char *filename)
 {
-    char *resource_dir = "..\\resources";
+    char *resource_dir = "resources";
     char *fullpath = (char *) malloc(strlen(resource_dir) + strlen(filename) + 2);
 
-    sprintf(fullpath, "%s/%s", resource_dir, filename);
+    sprintf(fullpath, "..%s%s%s%s", SEPARATOR, resource_dir, SEPARATOR, filename);
 
     FILE *fp;
 
