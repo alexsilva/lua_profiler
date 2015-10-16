@@ -183,7 +183,7 @@ static void profile_show_text(lua_State *L) {
 static void profile_html_show(lua_State *L) {
     Meta *array = get_metadata_array(L);
 
-    char *html = render_html(array, STACK_INDEX);
+    char *html = render_html(L, array, STACK_INDEX - 1);
 
     printf("%s", html);
 
