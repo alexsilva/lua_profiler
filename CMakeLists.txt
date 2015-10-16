@@ -8,7 +8,11 @@ include_directories(${LUA_INCLUDE_EXTRA})
 
 set(SOURCE_FILES
         profiler.c
-        profiler.h measure.h measure.c)
+        profiler.h
+        measure.h
+        measure.c
+        stack.h
+        stack.c)
 add_library(lua_profiler SHARED ${SOURCE_FILES})
 
 # =====================

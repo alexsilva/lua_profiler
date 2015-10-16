@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <lauxlib.h>
 #include "measure.h"
+#include "stack.h"
 
 bool PROFILE_INIT = false;
 
@@ -17,6 +18,10 @@ int STACK_INDEX = 0;
 int STACK_SIZE = 0;
 int MEM_BLOCKSIZE = 100;
 
+/* the stack */
+static STACK stack = NULL;
+static STACK_RECORD stack_record;
+static STACK_RECORD stack_recordout;
 
 /* METADATA */
 static Meta *get_metadata_array(lua_State *L) {
@@ -62,40 +67,44 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         }
     }
 
+    char *func_name;
+    char *func_scope;
+
     if (lua_isfunction(L, func)) {
-        char *func_name;
-        char *func_scope;
-
         func_scope = lua_getobjname(L, func, &func_name);
-
-        //printf("[%i] name: %s | func_scope: %s | source: %s | line: %i\n",
-        //       STACK_SIZE, func_name, func_scope, file, line);
 
         Measure *measure = malloc(sizeof(Measure));
         measure->begin = clock();
 
-        Meta meta;
+        Meta *meta = malloc(sizeof(Meta));
 
-        meta.fun_name = func_name;
-        meta.fun_scope = func_scope;
-        meta.func_file = file;
-        meta.stack_level = STACK_SIZE;
-        meta.line = line;
+        meta->fun_name = func_name;
+        meta->fun_scope = func_scope;
+        meta->func_file = file;
+        meta->stack_level = STACK_SIZE;
+        meta->line = line;
 
-        meta.measure = measure;
+        meta->measure = measure;
+        stack_record.meta = meta;
+        stack_record.index = STACK_INDEX;
 
-        array[STACK_INDEX] = meta;
+        push(&stack, stack_record);
+        //printf("push (%p)\n", stack);
 
         STACK_SIZE++;
         STACK_INDEX++;
 
     } else if (STACK_SIZE > 0) {
-        //printf("%d | %s | %d | INDEX: %d | STSIZE: %d | RINDEX: %d\n", func, file, line, STACK_INDEX, STACK_SIZE, STACK_INDEX - STACK_SIZE);
-        int index = STACK_INDEX - STACK_SIZE;
+        stack_recordout = pop(&stack);
+        //printf("stack_recordout (%p)\n", stack_recordout);
 
-        Meta meta = array[index];
+        Meta meta = *stack_recordout.meta;
+        array[stack_recordout.index] = meta;
+        free(stack_recordout.meta);
+
         meta.measure->end = clock();
         meta.measure->time_spent = calc_time_spent(meta.measure);
+
         STACK_SIZE--;
     }
 }
@@ -146,7 +155,7 @@ static void profile_show_text(lua_State *L) {
     int index;
     float time_total = 0;
 
-    for (index = 0; index < STACK_INDEX; index++) {
+    for (index = 0; index < STACK_INDEX - 1; index++) {
         meta = array[index];
 
         offsettext = repeat_str(offsetc, (size_t) meta.stack_level);
