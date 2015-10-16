@@ -12,7 +12,9 @@ set(SOURCE_FILES
         measure.h
         measure.c
         stack.h
-        stack.c)
+        stack.c
+        render.c
+        render.h)
 add_library(lua_profiler SHARED ${SOURCE_FILES})
 
 # =====================

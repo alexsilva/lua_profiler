@@ -10,6 +10,7 @@
 #include <lauxlib.h>
 #include "measure.h"
 #include "stack.h"
+#include "render.h"
 
 bool PROFILE_INIT = false;
 
@@ -179,9 +180,20 @@ static void profile_show_text(lua_State *L) {
     printf("TOTAL TIME SPENT: %.3f%s", total_spent, breakln);
 }
 
+static void profile_html_show(lua_State *L) {
+    Meta *array = get_metadata_array(L);
+
+    char *html = render_html(array, STACK_INDEX);
+
+    printf("%s", html);
+
+    free(html);
+}
+
 LUA_API int luaopen_profiler(lua_State *L) {
     lua_register(L, "profile_start", profile_start);
     lua_register(L, "profile_end", profile_end);
     lua_register(L, "profile_show_text", profile_show_text);
+    lua_register(L, "profile_html_show", profile_html_show);
     return 0;
 }
