@@ -17,6 +17,7 @@ int META_REF = 0;
 int STACK_INDEX = 0;
 int STACK_SIZE = 0;
 int MEM_BLOCKSIZE = 100;
+clock_t PROFILE_START_TIME;
 
 /* the stack */
 static STACK stack = NULL;
@@ -118,6 +119,7 @@ static void profile_start(lua_State *L) {
     META_REF = lua_ref(L, 1);
 
     lua_setcallhook(L, callhook);
+    PROFILE_START_TIME = clock();
     PROFILE_INIT = true;
 }
 
@@ -142,6 +144,10 @@ char *repeat_str(char *str, size_t count) {
 
 static void profile_show_text(lua_State *L) {
     check_start(L);
+    // Spent runtime so far.
+    float total_spent = calc_elapsed_time(PROFILE_START_TIME, clock());
+
+    // Lua args
     lua_Object lobj = lua_getparam(L, 1);
     char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
 
@@ -151,9 +157,7 @@ static void profile_show_text(lua_State *L) {
 
     Meta meta;
     Meta *array = get_metadata_array(L);
-
     int index;
-    float time_total = 0;
 
     for (index = 0; index < STACK_INDEX - 1; index++) {
         meta = array[index];
@@ -170,10 +174,9 @@ static void profile_show_text(lua_State *L) {
                meta.measure->time_spent,
                breakln
         );
-        time_total += meta.measure->time_spent;
         free(offsettext);
     }
-    printf("TOTAL TIME SPENT: %.3f%s", time_total, breakln);
+    printf("TOTAL TIME SPENT: %.3f%s", total_spent, breakln);
 }
 
 LUA_API int luaopen_profiler(lua_State *L) {

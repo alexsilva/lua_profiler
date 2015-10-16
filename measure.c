@@ -4,6 +4,11 @@
 
 #include "measure.h"
 
+
+float calc_elapsed_time(clock_t start, clock_t end) {
+    return ((float)(end - start) / CLOCKS_PER_SEC);
+}
+
 float calc_time_spent(Measure *measure) {
-    return  ((float)(measure->end - measure->begin) / CLOCKS_PER_SEC);
+    return calc_elapsed_time(measure->begin, measure->end);
 }

@@ -29,6 +29,7 @@ struct META {
 typedef struct META Meta;
 
 float calc_time_spent(Measure *measure);
+float calc_elapsed_time(clock_t start, clock_t end);
 
 extern int META_REF;
 extern int STACK_INDEX;
