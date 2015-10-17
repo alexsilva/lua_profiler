@@ -23,7 +23,6 @@ clock_t PROFILE_START_TIME;
 /* the stack */
 static STACK stack = NULL;
 static STACK_RECORD stack_record;
-static STACK_RECORD xrecord;
 
 /* METADATA */
 static Meta **get_metadata_array(lua_State *L) {
