@@ -42,6 +42,10 @@
     font-family: 'Consolas', 'Lucida Console', 'Monaco', monospace;
     margin: 0 4px 0 4px;
 }
+.fn_scope {
+    color: #006666;
+    font-weight: lighter;
+}
 .code-position {
     opacity: 0.5;
 }

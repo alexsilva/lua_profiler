@@ -22,7 +22,7 @@ static char *HTML_FRAME =
         "<span class=\"time\">%.3fs</span>" // time spent ?
         "<!--<span class=\"total-percent\"></span>-->"
         "<!--<span class=\"parent-percent\"></span>-->"
-        "<span class=\"function\">%s (%s)</span>"
+        "<span class=\"function\">%s <span class=\"fn_scope\">(%s)</span></span>"
         "<span class=\"code-position\">%s:%i</span>" // position
     "</div>"
 "<div class=\"frame-children\">";
