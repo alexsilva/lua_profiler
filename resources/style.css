@@ -40,6 +40,7 @@
 .function {
     font-weight: bold;
     font-family: 'Consolas', 'Lucida Console', 'Monaco', monospace;
+    margin: 0 4px 0 4px;
 }
 .code-position {
     opacity: 0.5;
