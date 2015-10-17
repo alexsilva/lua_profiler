@@ -9,5 +9,6 @@
 #include "measure.h"
 
 void render_html(lua_State *L, Meta **array_meta, int array_size);
+void render_text(lua_State *L, Meta **array, int array_size, char *offsetc, char *breakln);
 
 #endif //LUA_PROFILER_RENDER_H

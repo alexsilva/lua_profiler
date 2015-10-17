@@ -107,3 +107,41 @@ void body_html(lua_State *L, Meta **array_meta, int array_size) {
     }
     free(out);
 }
+
+static char *repeat_str(char *str, size_t count) {
+    if (count == 0) return NULL;
+    char *ret = malloc((strlen(str) * count) + 1);
+    if (ret == NULL) return NULL;
+    strcpy(ret, str);
+    while (--count > 0) {
+        strcat(ret, str);
+    }
+    return ret;
+}
+
+void render_text(lua_State *L, Meta **array, int array_size, char *offsetc, char *breakln) {
+    Meta *meta;
+    int index;
+    char *offsettext;
+    for (index = 0; index < array_size; index++) {
+        meta = array[index];
+
+        offsettext = repeat_str(offsetc, (size_t) meta->stack_level);
+        if (!offsettext) offsettext = ""; //  security
+
+        printf("%s %i | %s (%s) source: (%s) time: (%.3fs)%s",
+               offsettext,
+               meta->line,
+               meta->fun_name,
+               meta->fun_scope,
+               meta->func_file,
+               meta->measure->time_spent,
+               breakln
+        );
+        free(offsettext);
+        if (meta->children->list) {
+            render_text(L, meta->children->list, meta->children->index, offsetc, breakln);
+        }
+    }
+
+}
