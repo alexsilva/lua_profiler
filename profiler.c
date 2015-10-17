@@ -76,9 +76,13 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         func_scope = lua_getobjname(L, func, &func_name);
         Meta *meta = (Meta *) malloc(sizeof(Meta));
 
-        meta->fun_name = func_name;
-        meta->fun_scope = func_scope;
-        meta->func_file = file;
+        meta->fun_name = func_name ? func_name : "unnamed";
+        if (func_scope && strlen(func_scope) > 0) {
+            meta->fun_scope = func_scope;
+        } else {
+            meta->fun_scope = "unknown";
+        }
+        meta->func_file = file ? file : "unnamed";
         meta->stack_level = STACK_SIZE;
         meta->line = line;
 
@@ -209,12 +213,7 @@ static void profile_show_text(lua_State *L) {
 
 static void profile_html_show(lua_State *L) {
     Meta **array = get_metadata_array(L);
-
-    char *html = render_html(L, array, STACK_INDEX - 1);
-
-    printf("%s", html);
-
-    free(html);
+    render_html(L, array, STACK_INDEX - 1);
 }
 
 LUA_API int luaopen_profiler(lua_State *L) {
