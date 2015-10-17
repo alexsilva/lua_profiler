@@ -213,7 +213,7 @@ static void profile_show_text(lua_State *L) {
     printf("TOTAL TIME SPENT: %.3f%s", total_spent, breakln);
 }
 
-static void profile_html_show(lua_State *L) {
+static void profile_show_html(lua_State *L) {
     Meta **array = get_metadata_array(L);
     render_html(L, array, STACK_INDEX - 1);
 }
@@ -222,6 +222,6 @@ LUA_API int luaopen_profiler(lua_State *L) {
     lua_register(L, "profile_start", profile_start);
     lua_register(L, "profile_end", profile_end);
     lua_register(L, "profile_show_text", profile_show_text);
-    lua_register(L, "profile_html_show", profile_html_show);
+    lua_register(L, "profile_show_html", profile_show_html);
     return 0;
 }
