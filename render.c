@@ -16,19 +16,6 @@
 #define SEPARATOR "/"
 #endif
 
-static char *PAGE =
-"<html>"
-    "<head>"
-        "<style>%s</style>" // css
-        "<script>%s</script>" // jquery
-    "</head>"
-    "<body>"
-        "%s" // body
-        "<script>%s</script>" // js
-    "</body>"
-"</html>";
-
-
 static char *HTML_FRAME =
 "<div class=\"frame application %s\" data-time=\"\" date-parent-time=\"\">" // extra-class
     "<div class=\"frame-info\">"
@@ -64,56 +51,45 @@ static char *read_resource(char *basedir, char *filename) {
     return data;
 }
 
-char *as_html(lua_State *L, Meta **array_meta, int array_size, char *output, int outsize);
+void body_html(lua_State *L, Meta **, int);
 
-char *render_html(lua_State *L, Meta **array_meta, int array_size) {
+void render_html(lua_State *L, Meta **array_meta, int array_size) {
     char *basedir = luaL_check_string(L, 1);
+    printf("<html>");
+    printf("<head>");
 
     char *style = read_resource(basedir, "style.css");
-    char *profile = read_resource(basedir, "profile.js");
-    char *jquery = read_resource(basedir, "jquery-1.11.0.min.js");
-
-    size_t buffsize = (strlen(HTML_FRAME) + strlen(HTML_FRAME_CLOSE) + 1024) * 25;
-    char *body = (char *) malloc(buffsize * sizeof(char));
-    if (!body) lua_error(L, "output: out of memory!");
-    body[0] = '\0'; // empty string
-
-    as_html(L, array_meta, array_size, body, buffsize);
-
-    //printf("%s\n\n\n", body);
-
-    int page_size = strlen(PAGE) + strlen(style) + strlen(profile) +
-                    strlen(jquery) + strlen(body);
-    char *page = (char *) malloc((page_size + 1) * sizeof(char));
-    if (!page) lua_error(L, "page: out of memory!");
-
-    sprintf(page, PAGE, style, jquery, body, profile);
-
+    printf( "<style>%s</style>", style); // css
     free(style);
-    free(jquery);
-    free(profile);
-    free(body);
 
-    return page;
+    char *jquery = read_resource(basedir, "jquery-1.11.0.min.js");
+    printf("<script>%s</script>", jquery); // jquery
+    free(jquery);
+
+    printf("</head>");
+    printf("<body>");
+
+    body_html(L, array_meta, array_size);
+
+    char *profile = read_resource(basedir, "profile.js");
+    printf("<script>%s</script>", profile); // js
+    free(profile);
+
+    printf("</html>");
 }
 
+void body_html(lua_State *L, Meta **array_meta, int array_size) {
+    size_t buffsize = (strlen(HTML_FRAME) + strlen(HTML_FRAME_CLOSE) + 1024);
+    char *out = (char *) malloc(buffsize * sizeof(char));
+    if (!out) lua_error(L, "out of memory!");
 
-char *as_html(lua_State *L, Meta **array_meta, int array_size, char *output, int outsize) {
     int index;
     Meta *meta;
     char *extra_class;
-    char *out;
-
-    size_t buffsize = (strlen(HTML_FRAME) + strlen(HTML_FRAME_CLOSE) + 1024);
-    int buff;
 
     for (index = 0; index < array_size; index++) {
         meta = array_meta[index];
-
         extra_class = !meta->children->list ? "no_children " : "";
-        out = (char *) malloc((buffsize + strlen(extra_class)) * sizeof(char));
-        if (!out) lua_error(L, "out of memory!");
-
         sprintf(out, HTML_FRAME,
                 extra_class,
                 meta->measure->time_spent,
@@ -122,24 +98,12 @@ char *as_html(lua_State *L, Meta **array_meta, int array_size, char *output, int
                 meta->func_file,
                 meta->line
         );
-        buff = strlen(output) + strlen(out);
-        if (buff > outsize) {
-            outsize = outsize + buff;
-            output = realloc(output, outsize * sizeof(char));
-            if (!output) lua_error(L, "out of memory!");
-        }
-        strcat(output, out);
+        printf(out);
+        memset(out, 0, buffsize);
         if (meta->children->list) {
-            as_html(L, meta->children->list, meta->children->index, output, outsize);
+            body_html(L, meta->children->list, meta->children->index);
         }
-        buff = strlen(output) + strlen(HTML_FRAME_CLOSE);
-
-        if (buff > outsize) {
-            outsize = outsize + buff;
-            output = realloc(output, outsize * sizeof(char));
-            if (!output) lua_error(L, "out of memory!");
-        }
-        strcat(output, HTML_FRAME_CLOSE);
+        printf(HTML_FRAME_CLOSE);
     }
-    return output;
+    free(out);
 }
