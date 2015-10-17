@@ -14,6 +14,14 @@ struct MEASURE {
 };
 
 typedef struct MEASURE Measure;
+typedef struct CHILDREN Children;
+typedef struct META Meta;
+
+struct CHILDREN {
+    Meta **list;
+    int size;
+    int index;
+};
 
 struct META {
     Measure *measure;
@@ -24,9 +32,9 @@ struct META {
 
     int stack_level;
     int line;
-};
 
-typedef struct META Meta;
+    struct CHILDREN *children;
+};
 
 float calc_time_spent(Measure *measure);
 float calc_elapsed_time(clock_t start, clock_t end);

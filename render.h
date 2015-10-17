@@ -8,6 +8,6 @@
 #include <lua.h>
 #include "measure.h"
 
-char *render_html(lua_State *L, Meta *array_metadata, int array_size);
+char *render_html(lua_State *L, Meta **array_meta, int array_size);
 
 #endif //LUA_PROFILER_RENDER_H

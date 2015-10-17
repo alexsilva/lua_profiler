@@ -16,6 +16,10 @@ void push(STACK *stack, STACK_RECORD stack_record) {
     *stack = q;
 }
 
+STACK_RECORD *next(STACK *stack) {
+    return *stack;
+}
+
 STACK_RECORD pop(STACK *stack) {
     STACK_RECORD stack_record;
     STACK q;

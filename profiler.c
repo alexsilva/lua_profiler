@@ -23,19 +23,19 @@ clock_t PROFILE_START_TIME;
 /* the stack */
 static STACK stack = NULL;
 static STACK_RECORD stack_record;
-static STACK_RECORD stack_recordout;
+static STACK_RECORD xrecord;
 
 /* METADATA */
-static Meta *get_metadata_array(lua_State *L) {
+static Meta **get_metadata_array(lua_State *L) {
     return lua_getuserdata(L, lua_getref(L, META_REF));
 }
 
-static void free_array(Meta *array) {
+static void free_array(Meta **array) {
     int index;
-    Meta meta;
+    Meta *meta;
     for (index = 0; index < STACK_INDEX; index++) {
         meta = array[index];
-        free(meta.measure); // internal cleaning
+        free(meta->measure); // internal cleaning
     }
     // free the main object
     free(array);
@@ -49,14 +49,14 @@ static void check_start(lua_State *L) {
 /* CALL FUNCTION HOOK */
 static void callhook(lua_State *L, lua_Function func, char *file, int line) {
     check_start(L);
-    Meta *array = get_metadata_array(L);
+    Meta **array = get_metadata_array(L);
     if (!array) return; // check if exists (call profile_end ?)
 
     if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
         // Reached memory limit, relocated to double.
         int blocksize = MEM_BLOCKSIZE * 2;
 
-        array = realloc(array, blocksize * sizeof(Meta));
+        array = realloc(array, blocksize * sizeof(Meta **));
 
         if (array) {
             lua_unref(L, META_REF); // Remove the old reference (new block of memory).
@@ -74,11 +74,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
 
     if (lua_isfunction(L, func)) {
         func_scope = lua_getobjname(L, func, &func_name);
-
-        Measure *measure = malloc(sizeof(Measure));
-        measure->begin = clock();
-
-        Meta *meta = malloc(sizeof(Meta));
+        Meta *meta = (Meta *) malloc(sizeof(Meta));
 
         meta->fun_name = func_name;
         meta->fun_scope = func_scope;
@@ -86,27 +82,49 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta->stack_level = STACK_SIZE;
         meta->line = line;
 
+        Children *children = (Children *) malloc(sizeof(Children));
+        meta->children = children;
+        children->index = 0;
+        children->list = NULL;
+        children->size = 5;
+
+        Measure *measure = (Measure *) malloc(sizeof(Measure));
+        measure->begin = clock();
         meta->measure = measure;
+
         stack_record.meta = meta;
-        stack_record.index = STACK_INDEX;
-
         push(&stack, stack_record);
-        //printf("push (%p)\n", stack);
 
+        if (STACK_SIZE == 0) {
+            array[STACK_INDEX] = meta;
+            STACK_INDEX++;
+        }
         STACK_SIZE++;
-        STACK_INDEX++;
 
     } else if (STACK_SIZE > 0) {
-        stack_recordout = pop(&stack);
-        //printf("stack_recordout (%p)\n", stack_recordout);
+        STACK_RECORD top_record = pop(&stack);
+        STACK_RECORD *new_record = next(&stack);
 
-        Meta meta = *stack_recordout.meta;
-        array[stack_recordout.index] = meta;
-        free(stack_recordout.meta);
+        Meta *meta = top_record.meta;
+        meta->measure->end = clock();
+        meta->measure->time_spent = calc_time_spent(meta->measure);
 
-        meta.measure->end = clock();
-        meta.measure->time_spent = calc_time_spent(meta.measure);
-
+        if (new_record != NULL) {
+            Meta *_meta = new_record->meta;
+            if (!_meta->children->list) { // already allocated ?
+                _meta->children->size *= 2; // more
+                _meta->children->list = (Meta **) malloc(_meta->children->size * sizeof(Meta **));
+                if (!_meta->children->list) lua_error(L, "out of memory");
+            }
+            if (_meta->children->index > _meta->children->size - 1) {
+                _meta->children->size *= 2; // more
+                _meta->children->list = (Meta **) realloc(_meta->children->list,
+                                                          _meta->children->size * sizeof(Meta **));
+                if (!_meta->children->list) lua_error(L, "out of memory");
+            }
+            _meta->children->list[_meta->children->index] = meta;
+            _meta->children->index++;
+        }
         STACK_SIZE--;
     }
 }
@@ -114,7 +132,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
 static void profile_start(lua_State *L) {
     if (PROFILE_INIT)
         return; // already started.
-    Meta *meta = malloc(MEM_BLOCKSIZE * sizeof(Meta));
+    Meta **meta = (Meta **) malloc(MEM_BLOCKSIZE * sizeof(Meta **));
 
     lua_pushuserdata(L, meta);
     META_REF = lua_ref(L, 1);
@@ -143,6 +161,33 @@ char *repeat_str(char *str, size_t count) {
     return ret;
 }
 
+static void render_text(lua_State *L, Meta **array, int array_size, char *offsetc, char *breakln) {
+    Meta *meta;
+    int index;
+    char *offsettext;
+    for (index = 0; index < array_size; index++) {
+        meta = array[index];
+
+        offsettext = repeat_str(offsetc, (size_t) meta->stack_level);
+        if (!offsettext) offsettext = ""; //  security
+
+        printf("%s %i | %s (%s) source: (%s) time: (%.3fs)%s",
+               offsettext,
+               meta->line,
+               meta->fun_name,
+               meta->fun_scope,
+               meta->func_file,
+               meta->measure->time_spent,
+               breakln
+        );
+        free(offsettext);
+        if (meta->children->list) {
+            render_text(L, meta->children->list, meta->children->index, offsetc, breakln);
+        }
+    }
+
+}
+
 static void profile_show_text(lua_State *L) {
     check_start(L);
     // Spent runtime so far.
@@ -154,34 +199,16 @@ static void profile_show_text(lua_State *L) {
 
     lobj = lua_getparam(L, 2);
     char *offsetc = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\t";
-    char *offsettext;
 
-    Meta meta;
-    Meta *array = get_metadata_array(L);
-    int index;
+    Meta **array = get_metadata_array(L);
 
-    for (index = 0; index < STACK_INDEX - 1; index++) {
-        meta = array[index];
+    render_text(L, array, STACK_INDEX - 1, offsetc, breakln);
 
-        offsettext = repeat_str(offsetc, (size_t) meta.stack_level);
-        if (!offsettext) offsettext = ""; //  security
-
-        printf("%s %i | %s (%s) source: (%s) time: (%.3fs)%s",
-               offsettext,
-               meta.line,
-               meta.fun_name,
-               meta.fun_scope,
-               meta.func_file,
-               meta.measure->time_spent,
-               breakln
-        );
-        free(offsettext);
-    }
     printf("TOTAL TIME SPENT: %.3f%s", total_spent, breakln);
 }
 
 static void profile_html_show(lua_State *L) {
-    Meta *array = get_metadata_array(L);
+    Meta **array = get_metadata_array(L);
 
     char *html = render_html(L, array, STACK_INDEX - 1);
 
