@@ -29,12 +29,15 @@ static Meta **get_metadata_array(lua_State *L) {
     return lua_getuserdata(L, lua_getref(L, META_REF));
 }
 
+/* CLEANUP */
 static void free_array(Meta **array) {
     int index;
     Meta *meta;
     for (index = 0; index < STACK_INDEX; index++) {
         meta = array[index];
         free(meta->measure); // internal cleaning
+        free(meta->children);
+        free(meta);
     }
     // free the main object
     free(array);
