@@ -40,7 +40,6 @@ static void free_array(Meta **array, int size) {
             free_array(meta->children->list,
                        meta->children->index);
         free(meta->measure);
-        free(meta->children->list);
         free(meta->children);
         free(meta);
     }
