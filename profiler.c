@@ -120,7 +120,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta->measure->end = clock();
         meta->measure->time_spent = calc_time_spent(meta->measure);
 
-        if (new_record != NULL && (meta->measure->time_spent >= PROFILE_RECORD_TIME || PROFILE_RECORD_TIME == -1)) {
+        if (new_record != NULL && meta->measure->time_spent >= PROFILE_RECORD_TIME) {
             Meta *_meta = new_record->meta;
             if (!_meta->children->list) { // already allocated ?
                 _meta->children->size *= 2; // more
