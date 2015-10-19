@@ -126,10 +126,9 @@ void render_text(lua_State *L, Meta **array, int array_size, char *offsetc, char
         meta = array[index];
 
         offsettext = repeat_str(offsetc, (size_t) meta->stack_level);
-        if (!offsettext) offsettext = ""; //  security
 
         printf("%s %i | %s (%s) source: (%s) time: (%.3fs)%s",
-               offsettext,
+               !offsettext ? "" : offsettext,
                meta->line,
                meta->fun_name,
                meta->fun_scope,
@@ -137,7 +136,7 @@ void render_text(lua_State *L, Meta **array, int array_size, char *offsetc, char
                meta->measure->time_spent,
                breakln
         );
-        free(offsettext);
+        if (offsettext) free(offsettext);
         if (meta->children->list) {
             render_text(L, meta->children->list, meta->children->index, offsetc, breakln);
         }
