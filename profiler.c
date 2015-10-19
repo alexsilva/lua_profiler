@@ -17,7 +17,7 @@ bool PROFILE_INIT = false;
 int META_REF = 0;
 int STACK_INDEX = 0;
 int STACK_SIZE = 0;
-int MEM_BLOCKSIZE = 100;
+int MEM_BLOCKSIZE = 10;
 clock_t PROFILE_START_TIME;
 static float PROFILE_RECORD_TIME = 0.001;
 
@@ -96,7 +96,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta->children = children;
         children->index = 0;
         children->list = NULL;
-        children->size = 5;
+        children->size = 20;
 
         Measure *measure = (Measure *) malloc(sizeof(Measure));
         measure->begin = clock();
@@ -122,7 +122,6 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         if (new_record != NULL && meta->measure->time_spent >= PROFILE_RECORD_TIME) {
             Meta *_meta = new_record->meta;
             if (!_meta->children->list) { // already allocated ?
-                _meta->children->size *= 2; // more
                 _meta->children->list = (Meta **) malloc(_meta->children->size * sizeof(Meta **));
                 if (!_meta->children->list) lua_error(L, "out of memory");
             }
