@@ -56,7 +56,7 @@ static void check_start(lua_State *L) {
 static void callhook(lua_State *L, lua_Function func, char *file, int line) {
     check_start(L);
     Meta **array = get_metadata_array(L);
-    if (!array) return; // check if exists (call profile_end ?)
+    if (!array) return; // check if exists (call profile_stop ?)
 
     if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
         // Reached memory limit, relocated to double.
@@ -152,7 +152,7 @@ static void profile_start(lua_State *L) {
     PROFILE_INIT = true;
 }
 
-static void profile_end(lua_State *L) {
+static void profile_stop(lua_State *L) {
     check_start(L);
     lua_setcallhook(L, NULL); // disable hook
     free_array(get_metadata_array(L), STACK_INDEX);
@@ -186,7 +186,7 @@ static void profile_show_html(lua_State *L) {
 
 LUA_API int luaopen_profiler(lua_State *L) {
     lua_register(L, "profile_start", profile_start);
-    lua_register(L, "profile_end", profile_end);
+    lua_register(L, "profile_stop", profile_stop);
     lua_register(L, "profile_show_text", profile_show_text);
     lua_register(L, "profile_show_html", profile_show_html);
     return 0;
