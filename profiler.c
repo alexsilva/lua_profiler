@@ -19,6 +19,7 @@ int STACK_INDEX = 0;
 int STACK_SIZE = 0;
 int MEM_BLOCKSIZE = 100;
 clock_t PROFILE_START_TIME;
+static float PROFILE_RECORD_TIME = 0.001;
 
 /* the stack */
 static STACK stack = NULL;
@@ -119,7 +120,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta->measure->end = clock();
         meta->measure->time_spent = calc_time_spent(meta->measure);
 
-        if (new_record != NULL) {
+        if (new_record != NULL && (meta->measure->time_spent >= PROFILE_RECORD_TIME || PROFILE_RECORD_TIME == -1)) {
             Meta *_meta = new_record->meta;
             if (!_meta->children->list) { // already allocated ?
                 _meta->children->size *= 2; // more
@@ -142,6 +143,9 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
 static void profile_start(lua_State *L) {
     if (PROFILE_INIT)
         return; // already started.
+    lua_Object lobj = lua_getparam(L, 1);
+    PROFILE_RECORD_TIME = lobj > 0 ? (float) lua_getnumber(L, lobj) : PROFILE_RECORD_TIME;
+
     Meta **meta = (Meta **) malloc(MEM_BLOCKSIZE * sizeof(Meta **));
 
     lua_pushuserdata(L, meta);
