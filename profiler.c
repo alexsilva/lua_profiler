@@ -144,8 +144,11 @@ static void profile_start(lua_State *L) {
     if (PROFILE_INIT)
         return; // already started.
     lua_Object lobj = lua_getparam(L, 1);
-    PROFILE_RECORD_TIME = lobj > 0 ? (float) lua_getnumber(L, lobj) : PROFILE_RECORD_TIME;
-
+    if (lobj > 0) {
+        luaL_arg_check(L, lua_isnumber(L, lobj), 1,
+                       "Inform the minimum time results in float");
+        PROFILE_RECORD_TIME = (float) lua_getnumber(L, lobj);
+    }
     Meta **meta = (Meta **) malloc(MEM_BLOCKSIZE * sizeof(Meta **));
 
     lua_pushuserdata(L, meta);
