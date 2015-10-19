@@ -30,12 +30,16 @@ static Meta **get_metadata_array(lua_State *L) {
 }
 
 /* CLEANUP */
-static void free_array(Meta **array) {
+static void free_array(Meta **array, int size) {
     int index;
     Meta *meta;
-    for (index = 0; index < STACK_INDEX; index++) {
-        meta = array[index];
-        free(meta->measure); // internal cleaning
+    for (index = 0; index < size; index++) {
+        meta = array[index]; // recursive cleaning
+        if (meta->children->list)
+            free_array(meta->children->list,
+                       meta->children->index);
+        free(meta->measure);
+        free(meta->children->list);
         free(meta->children);
         free(meta);
     }
@@ -151,7 +155,7 @@ static void profile_start(lua_State *L) {
 static void profile_end(lua_State *L) {
     check_start(L);
     lua_setcallhook(L, NULL); // disable hook
-    free_array(get_metadata_array(L));
+    free_array(get_metadata_array(L), STACK_INDEX);
     lua_unref(L, META_REF); // Remove the old reference (new block of memory).
     PROFILE_INIT = false;
 }
