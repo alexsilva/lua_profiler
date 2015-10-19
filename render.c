@@ -97,12 +97,12 @@ void body_html(lua_State *L, Meta **array_meta, int array_size) {
                 meta->func_file,
                 meta->line
         );
-        printf(out);
+        printf("%s", out);
         memset(out, 0, buffsize);
         if (meta->children->list) {
             body_html(L, meta->children->list, meta->children->index);
         }
-        printf(HTML_FRAME_CLOSE);
+        printf("%s", HTML_FRAME_CLOSE);
     }
     free(out);
 }
