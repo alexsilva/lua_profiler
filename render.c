@@ -66,9 +66,10 @@ void render_html(lua_State *L, Meta **array_meta, int array_size) {
     free(jquery);
 
     printf("</head>");
-    printf("<body>");
 
+    printf("<body>");
     body_html(L, array_meta, array_size);
+    printf("</body>");
 
     char *profile = read_resource(basedir, "profile.js");
     printf("<script>%s</script>", profile); // js
