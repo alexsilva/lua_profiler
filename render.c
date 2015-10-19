@@ -31,8 +31,7 @@ static char *HTML_FRAME_CLOSE = "</div></div>";
 
 static char *read_resource(char *basedir, char *filename) {
     char *format = "%sresources%s%s";
-    int buffsize = strlen(format) + strlen(basedir) + strlen(filename) + 1;
-    char *fullpath = (char *) malloc(buffsize *sizeof(char));
+    char fullpath[strlen(format) + strlen(basedir) + strlen(filename) + 1];
     sprintf(fullpath, format, basedir, SEPARATOR, filename);
 
     FILE *fp = fopen(fullpath, "rb");
