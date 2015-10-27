@@ -30,9 +30,9 @@ static char *HTML_FRAME =
 static char *HTML_FRAME_CLOSE = "</div></div>";
 
 static char *read_resource(char *basedir, char *filename) {
-    char *format = "%sresources%s%s";
+    char *format = "%sprofiler%sresources%s%s";
     char fullpath[strlen(format) + strlen(basedir) + strlen(filename) + 1];
-    sprintf(fullpath, format, basedir, SEPARATOR, filename);
+    sprintf(fullpath, format, basedir, SEPARATOR, SEPARATOR, filename);
 
     FILE *fp = fopen(fullpath, "rb");
     char *data = NULL;
