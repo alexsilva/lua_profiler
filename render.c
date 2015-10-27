@@ -16,25 +16,10 @@
 #define SEPARATOR "/"
 #endif
 
-static char *HTML_FRAME =
-"<div class=\"frame application %s\" data-time=\"\" date-parent-time=\"\">" // extra-class
-    "<div class=\"frame-info\">"
-        "<span class=\"time\">%.3fs</span>" // time spent ?
-        "<!--<span class=\"total-percent\"></span>-->"
-        "<!--<span class=\"parent-percent\"></span>-->"
-        "<span class=\"function\">%s <span class=\"fn_scope\">(%s)</span></span>"
-        "<span class=\"code-position\">%s:%i</span>" // position
-    "</div>"
-"<div class=\"frame-children\">";
-
 static char *HTML_FRAME_CLOSE = "</div></div>";
 
-static char *read_resource(char *basedir, char *filename) {
-    char *format = "%sprofiler%sresources%s%s";
-    char fullpath[strlen(format) + strlen(basedir) + strlen(filename) + 1];
-    sprintf(fullpath, format, basedir, SEPARATOR, SEPARATOR, filename);
-
-    FILE *fp = fopen(fullpath, "rb");
+static char *read_filecontent(char *filename) {
+    FILE *fp = fopen(filename, "rb");
     char *data = NULL;
     if (fp) {
         fseek(fp, 0, SEEK_END);  // get file size (cross way)
@@ -50,7 +35,27 @@ static char *read_resource(char *basedir, char *filename) {
     return data;
 }
 
-void body_html(lua_State *L, Meta **, int);
+static char *formatpath(char *format, char *basedir, char *filename) {
+    char *fullpath = malloc(strlen(format) + strlen(basedir) + strlen(filename) + 1);
+    sprintf(fullpath, format, basedir, SEPARATOR, SEPARATOR, filename);
+    return fullpath;
+}
+
+static char *read_resource(char *basedir, char *filename) {
+    char *fullpath = formatpath("%sprofiler%sresources%s%s", basedir, filename);
+    char *data = read_filecontent(fullpath);
+    free(fullpath);
+    return data;
+}
+
+static char *read_template(char *basedir, char *filename) {
+    char *fullpath = formatpath("%sprofiler%stemplates%s%s", basedir, filename);
+    char *data = read_filecontent(fullpath);
+    free(fullpath);
+    return data;
+}
+
+void body_html(lua_State *L, Meta **, int, char *);
 
 void render_html(lua_State *L, Meta **array_meta, int array_size) {
     char *basedir = luaL_check_string(L, 1);
@@ -68,7 +73,9 @@ void render_html(lua_State *L, Meta **array_meta, int array_size) {
     printf("</head>");
 
     printf("<body>");
-    body_html(L, array_meta, array_size);
+    char *html_frame = read_template(basedir, "render.html");
+    body_html(L, array_meta, array_size, html_frame);
+    free(html_frame);
     printf("</body>");
 
     char *profile = read_resource(basedir, "profile.js");
@@ -78,8 +85,8 @@ void render_html(lua_State *L, Meta **array_meta, int array_size) {
     printf("</html>");
 }
 
-void body_html(lua_State *L, Meta **array_meta, int array_size) {
-    size_t buffsize = (strlen(HTML_FRAME) + strlen(HTML_FRAME_CLOSE) + 1024);
+void body_html(lua_State *L, Meta **array_meta, int array_size, char *html_frame) {
+    size_t buffsize = (strlen(html_frame) + strlen(HTML_FRAME_CLOSE) + 1024);
     char *out = (char *) malloc(buffsize * sizeof(char));
     if (!out) lua_error(L, "out of memory!");
 
@@ -90,7 +97,7 @@ void body_html(lua_State *L, Meta **array_meta, int array_size) {
     for (index = 0; index < array_size; index++) {
         meta = array_meta[index];
         extra_class = !meta->children->list ? "no_children " : "";
-        sprintf(out, HTML_FRAME,
+        sprintf(out, html_frame,
                 extra_class,
                 meta->measure->time_spent,
                 meta->fun_name,
@@ -101,7 +108,7 @@ void body_html(lua_State *L, Meta **array_meta, int array_size) {
         printf("%s", out);
         memset(out, 0, buffsize);
         if (meta->children->list) {
-            body_html(L, meta->children->list, meta->children->index);
+            body_html(L, meta->children->list, meta->children->index, html_frame);
         }
         printf("%s", HTML_FRAME_CLOSE);
     }
