@@ -57,7 +57,7 @@ static char *read_template(char *basedir, char *filename) {
 
 void body_html(lua_State *L, Meta **, int, char *);
 
-void render_html(lua_State *L, Meta **array_meta, int array_size) {
+void render_html(lua_State *L, Meta **array, int size) {
     char *basedir = luaL_check_string(L, 1);
     printf("<html>");
     printf("<head>");
@@ -74,7 +74,7 @@ void render_html(lua_State *L, Meta **array_meta, int array_size) {
 
     printf("<body>");
     char *html_frame = read_template(basedir, "render.html");
-    body_html(L, array_meta, array_size, html_frame);
+    body_html(L, array, size, html_frame);
     free(html_frame);
     printf("</body>");
 
@@ -126,28 +126,44 @@ static char *repeat_str(char *str, size_t count) {
     return ret;
 }
 
-void render_text(lua_State *L, Meta **array, int array_size, char *offsetc, char *breakln) {
+static void _render_text(lua_State *L, Meta **array, int size,
+                         char *texttpl, char *offsetc, char *breakln) {
     Meta *meta;
     int index;
     char *offsettext;
-    for (index = 0; index < array_size; index++) {
+    for (index = 0; index < size; index++) {
         meta = array[index];
 
         offsettext = repeat_str(offsetc, (size_t) meta->stack_level);
 
-        printf("%s %i | %s (%s) source: (%s) time: (%.3fs)%s",
+        printf(texttpl,
                !offsettext ? "" : offsettext,
-               meta->line,
+               meta->measure->time_spent,
                meta->fun_name,
                meta->fun_scope,
                meta->func_file,
-               meta->measure->time_spent,
+               meta->line,
                breakln
         );
         if (offsettext) free(offsettext);
         if (meta->children->list) {
-            render_text(L, meta->children->list, meta->children->index, offsetc, breakln);
+            _render_text(L, meta->children->list, meta->children->index,
+                         texttpl, offsetc, breakln);
         }
     }
-
 }
+
+void render_text(lua_State *L, Meta **array, int size) {
+    char *basedir = luaL_check_string(L, 1);
+    // Lua args
+    lua_Object lobj = lua_getparam(L, 2);
+    char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
+
+    lobj = lua_getparam(L, 3);
+    char *offsetc = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\t";
+
+    char *texttpl = read_template(basedir, "render.txt");
+    _render_text(L, array, size, texttpl, offsetc, breakln);
+    free(texttpl);
+}
+

@@ -167,21 +167,10 @@ static void profile_stop(lua_State *L) {
 
 static void profile_show_text(lua_State *L) {
     check_start(L);
-    // Spent runtime so far.
-    float total_spent = calc_elapsed_time(PROFILE_START_TIME, clock());
-
-    // Lua args
-    lua_Object lobj = lua_getparam(L, 1);
-    char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
-
-    lobj = lua_getparam(L, 2);
-    char *offsetc = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\t";
 
     Meta **array = get_metadata_array(L);
 
-    render_text(L, array, STACK_INDEX - 1, offsetc, breakln);
-
-    printf("TOTAL TIME SPENT: %.3f%s", total_spent, breakln);
+    render_text(L, array, STACK_INDEX - 1);
 }
 
 static void profile_show_html(lua_State *L) {
