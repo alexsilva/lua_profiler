@@ -10,5 +10,6 @@
 
 void render_html(lua_State *L, Meta **array, int size);
 void render_text(lua_State *L, Meta **array, int size);
+void render_json(lua_State *L, Meta **array, int size);
 
 #endif //LUA_PROFILER_RENDER_H

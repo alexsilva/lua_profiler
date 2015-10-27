@@ -167,3 +167,29 @@ void render_text(lua_State *L, Meta **array, int size) {
     free(texttpl);
 }
 
+
+void _render_json(lua_State *L, Meta **array, int size, char *jsontmpl) {
+    Meta *meta;
+    int index;
+    for (index = 0; index < size; index++) {
+        meta = array[index];
+        printf(jsontmpl,
+               !meta->children->list ? "no_children" : "",
+               meta->measure->time_spent,
+               meta->fun_name,
+               meta->fun_scope,
+               meta->func_file,
+               meta->line
+        );
+        if (meta->children->list) {
+            _render_json(L, meta->children->list, meta->children->index, jsontmpl);
+        }
+        printf("]}");
+    }
+}
+
+void render_json(lua_State *L, Meta **array, int size) {
+    char *basedir = luaL_check_string(L, 1);
+    char *jsontmpl = read_template(basedir, "render.json");
+    _render_json(L, array, size, jsontmpl);
+}

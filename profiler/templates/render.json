@@ -1,0 +1,8 @@
+{
+  "no_children" : "%s",
+  "time": %.3f,
+  "function": "%s",
+  "fn_scope": "%s",
+  "fn_file": "%s",
+  "code_pos": %i,
+  "children": [

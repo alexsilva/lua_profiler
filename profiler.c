@@ -178,10 +178,16 @@ static void profile_show_html(lua_State *L) {
     render_html(L, array, STACK_INDEX - 1);
 }
 
+static void profile_show_json(lua_State *L) {
+    Meta **array = get_metadata_array(L);
+    render_json(L, array, STACK_INDEX - 1);
+}
+
 LUA_API int luaopen_profiler(lua_State *L) {
     lua_register(L, "profile_start", profile_start);
     lua_register(L, "profile_stop", profile_stop);
     lua_register(L, "profile_show_text", profile_show_text);
     lua_register(L, "profile_show_html", profile_show_html);
+    lua_register(L, "profile_show_json", profile_show_json);
     return 0;
 }
