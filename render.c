@@ -159,10 +159,10 @@ static void _render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int
 void render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
     char *basedir = pconfig->resource_dir;
     // Lua args
-    lua_Object lobj = lua_getparam(L, 2);
+    lua_Object lobj = lua_getparam(L, 1);
     char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
 
-    lobj = lua_getparam(L, 3);
+    lobj = lua_getparam(L, 2);
     char *offsetc = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\t";
 
     char *texttpl = read_template(basedir, "render.txt");
