@@ -144,10 +144,10 @@ static void profile_configure(lua_State *L, ProfileConfig *pconfig) {
     /* EXTRA CONFIGS */
     int nargs = lua_gettop(L);
     lua_Object lobj = lua_getparam(L, nargs);
-    if (lobj > 0) {
+    if (nargs > 1)
+        luaL_arg_check(L, lua_istable(L, lobj), nargs, "enter a configurations table");
+    if (lobj > 0 && lua_istable(L, lobj)) {
         /* RECORD LIMIT CONFIG */
-        luaL_arg_check(L, lua_istable(L, lobj), nargs,
-                       "enter a configurations table");
         lua_pushobject(L, lobj);
         lua_pushstring(L, "record_limit");
         lua_Object lnumber = lua_gettable(L);
