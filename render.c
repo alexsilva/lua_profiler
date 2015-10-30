@@ -56,7 +56,7 @@ static char *read_template(char *basedir, char *filename) {
     return data;
 }
 
-void body_html(lua_State *L, Meta **, int, char *);
+void body_html(lua_State *L, ProfileConfig *pconfig, Meta **, int, char *);
 
 void render_html(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
     char *basedir = pconfig->resource_dir;
@@ -75,7 +75,7 @@ void render_html(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
 
     printf("<body>");
     char *html_frame = read_template(basedir, "render.html");
-    body_html(L, array, size, html_frame);
+    body_html(L, pconfig, array, size, html_frame);
     free(html_frame);
     printf("</body>");
 
@@ -86,7 +86,7 @@ void render_html(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
     printf("</html>");
 }
 
-void body_html(lua_State *L, Meta **array_meta, int array_size, char *html_frame) {
+void body_html(lua_State *L, ProfileConfig *pconfig, Meta **array_meta, int array_size, char *html_frame) {
     size_t buffsize = (strlen(html_frame) + strlen(HTML_FRAME_CLOSE) + 1024);
     char *out = (char *) malloc(buffsize * sizeof(char));
     if (!out) lua_error(L, "out of memory!");
@@ -97,6 +97,8 @@ void body_html(lua_State *L, Meta **array_meta, int array_size, char *html_frame
 
     for (index = 0; index < array_size; index++) {
         meta = array_meta[index];
+        if (pconfig->record_limit > meta->measure->time_spent)
+            continue; //filter by time the root item
         extra_class = !meta->children->list ? "no_children " : "";
         sprintf(out, html_frame,
                 extra_class,
@@ -109,7 +111,7 @@ void body_html(lua_State *L, Meta **array_meta, int array_size, char *html_frame
         printf("%s", out);
         memset(out, 0, buffsize);
         if (meta->children->list) {
-            body_html(L, meta->children->list, meta->children->index, html_frame);
+            body_html(L, pconfig, meta->children->list, meta->children->index, html_frame);
         }
         printf("%s", HTML_FRAME_CLOSE);
     }
@@ -127,16 +129,16 @@ static char *repeat_str(char *str, size_t count) {
     return ret;
 }
 
-static void _render_text(lua_State *L, Meta **array, int size,
+static void _render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int size,
                          char *texttpl, char *offsetc, char *breakln) {
     Meta *meta;
     int index;
     char *offsettext;
     for (index = 0; index < size; index++) {
         meta = array[index];
-
+        if (pconfig->record_limit > meta->measure->time_spent)
+            continue; //filter by time the root item
         offsettext = repeat_str(offsetc, (size_t) meta->stack_level);
-
         printf(texttpl,
                !offsettext ? "" : offsettext,
                meta->measure->time_spent,
@@ -148,7 +150,7 @@ static void _render_text(lua_State *L, Meta **array, int size,
         );
         if (offsettext) free(offsettext);
         if (meta->children->list) {
-            _render_text(L, meta->children->list, meta->children->index,
+            _render_text(L, pconfig, meta->children->list, meta->children->index,
                          texttpl, offsetc, breakln);
         }
     }
@@ -164,16 +166,18 @@ void render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
     char *offsetc = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\t";
 
     char *texttpl = read_template(basedir, "render.txt");
-    _render_text(L, array, size, texttpl, offsetc, breakln);
+    _render_text(L, pconfig, array, size, texttpl, offsetc, breakln);
     free(texttpl);
 }
 
 
-void _render_json(lua_State *L, Meta **array, int size, char *jsontmpl) {
+void _render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size, char *jsontmpl) {
     Meta *meta;
     int index;
     for (index = 0; index < size; index++) {
         meta = array[index];
+        if (pconfig->record_limit > meta->measure->time_spent)
+            continue; //filter by time the root item
         printf(jsontmpl,
                !meta->children->list ? "no_children" : "",
                meta->measure->time_spent,
@@ -183,7 +187,7 @@ void _render_json(lua_State *L, Meta **array, int size, char *jsontmpl) {
                meta->line
         );
         if (meta->children->list) {
-            _render_json(L, meta->children->list, meta->children->index, jsontmpl);
+            _render_json(L, pconfig, meta->children->list, meta->children->index, jsontmpl);
         }
         printf("]}");
     }
@@ -192,5 +196,5 @@ void _render_json(lua_State *L, Meta **array, int size, char *jsontmpl) {
 void render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
     char *basedir = pconfig->resource_dir;
     char *jsontmpl = read_template(basedir, "render.json");
-    _render_json(L, array, size, jsontmpl);
+    _render_json(L, pconfig, array, size, jsontmpl);
 }

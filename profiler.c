@@ -119,7 +119,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta->measure->end = clock();
         meta->measure->time_spent = calc_time_spent(meta->measure);
 
-        if (next_record != NULL && meta->measure->time_spent >= pconfig->record_limit) {
+        if (next_record != NULL) {
             Meta *_meta = next_record->meta;
             if (!_meta->children->list) { // already allocated ?
                 _meta->children->list = (Meta **) malloc(_meta->children->size * sizeof(Meta **));
@@ -172,7 +172,7 @@ static void profile_start(lua_State *L) {
         lua_Object lfilename = lua_gettable(L);
         pconfig->stdout_filename = lua_isstring(L, lfilename) ? lua_getstring(L, lfilename) : NULL;
     } else {
-        pconfig->record_limit = 0.001;
+        pconfig->record_limit = 0.001f;
         pconfig->stdout_filename = NULL;
     }
 
