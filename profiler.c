@@ -258,13 +258,25 @@ static void profile_show_html(lua_State *L) {
     render_html(L, pconfig, array, pconfig->stack_info->index - 1);
 }
 
-static void profile_show_json(lua_State *L) {
+static char *profile_as_json(lua_State *L) {
     ProfileConfig *pconfig = get_profile_config(L);
     stdout_configure(pconfig);
 
     Meta **array = get_metadata_array(L, pconfig);
 
-    render_json(L, pconfig, array, pconfig->stack_info->index - 1);
+    return render_json(L, pconfig, array, pconfig->stack_info->index - 1);
+}
+
+static void lprofile_as_json(lua_State *L) {
+    char *jsonvl = profile_as_json(L);
+    lua_pushstring(L, jsonvl);
+    free(jsonvl);
+}
+
+static void profile_show_json(lua_State *L) {
+    char *jsonvl = profile_as_json(L);
+    printf("%s", jsonvl);
+    free(jsonvl);
 }
 
 /* Defines the functions of the profiler api */
@@ -275,6 +287,7 @@ static struct luaL_reg _methods[] = {
     {"show_html",   profile_show_html},
     {"show_json",   profile_show_json},
     {"reconfigure", profile_reconfigure},
+    {"get_json",    lprofile_as_json},
     {NULL, NULL}
 };
 

@@ -7,6 +7,7 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <assert.h>
+#include "json-builder.h"
 #include "render.h"
 #include "measure.h"
 #include "profiler.h"
@@ -171,30 +172,39 @@ void render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
 }
 
 
-void _render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size, char *jsontmpl) {
+void _render_json(lua_State *L, ProfileConfig *pconfig, json_value *jarr,
+                  Meta **array, int size) {
     Meta *meta;
     int index;
+    json_value *jobj;
     for (index = 0; index < size; index++) {
         meta = array[index];
         if (pconfig->record_limit > meta->measure->time_spent)
             continue; //filter by time the root item
-        printf(jsontmpl,
-               !meta->children->list ? "no_children" : "",
-               meta->measure->time_spent,
-               meta->fun_name,
-               meta->fun_scope,
-               meta->func_file,
-               meta->line
-        );
+
+        jobj = json_object_new(0);
+        json_array_push(jarr, jobj);
+
+        json_object_push(jobj, "no_children", json_string_new(!meta->children->list ? "no_children" : ""));
+        json_object_push(jobj, "time", json_double_new(meta->measure->time_spent));
+        json_object_push(jobj, "function", json_string_new(meta->fun_name));
+        json_object_push(jobj, "fn_scope", json_string_new(meta->fun_scope));
+        json_object_push(jobj, "fn_file", json_string_new(meta->func_file));
+        json_object_push(jobj, "code_pos", json_double_new(meta->line));
+
         if (meta->children->list) {
-            _render_json(L, pconfig, meta->children->list, meta->children->index, jsontmpl);
+            jarr = json_array_new(0);
+            json_object_push(jobj, "children", jarr);
+            _render_json(L, pconfig, jarr,
+                         meta->children->list, meta->children->index);
         }
-        printf("]}");
     }
 }
 
-void render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
-    char *basedir = pconfig->resource_dir;
-    char *jsontmpl = read_template(basedir, "render.json");
-    _render_json(L, pconfig, array, size, jsontmpl);
+char *render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
+    json_value *arr = json_array_new(0);
+    _render_json(L, pconfig, arr, array, size);
+    char *buf = malloc(json_measure(arr));
+    json_serialize(buf, arr);
+    return buf;
 }

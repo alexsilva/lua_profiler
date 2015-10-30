@@ -6,6 +6,9 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 include_directories(${LUA_INCLUDE_DIR})
 include_directories(${LUA_INCLUDE_EXTRA})
 
+include_directories(json-builder)
+include_directories(json-parser)
+
 set(SOURCE_FILES
         profiler.c
         profiler.h
@@ -18,7 +21,10 @@ set(SOURCE_FILES
         utils.c
         utils.h
         clocks.c
-        clocks.h)
+        clocks.h
+        json-builder/json-builder.c
+        json-parser/json.c)
+
 add_library(lua_profiler SHARED ${SOURCE_FILES})
 
 # =====================

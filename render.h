@@ -11,6 +11,6 @@
 
 void render_html(lua_State *L, ProfileConfig *pconfig, Meta **array, int size);
 void render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int size);
-void render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size);
+char *render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size);
 
 #endif //LUA_PROFILER_RENDER_H
