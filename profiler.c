@@ -217,9 +217,18 @@ static void profile_stop(lua_State *L) {
     free(pconfig);
 }
 
+static bool stdout_configure(ProfileConfig *pconfig) {
+    if (pconfig->stdout_filename) {
+        freopen(pconfig->stdout_filename, "w", stdout);
+        return true;
+    }
+    return false;
+}
+
 static void profile_show_text(lua_State *L) {
     ProfileConfig *pconfig = get_profile_config(L);
     check_start(L, pconfig);
+    stdout_configure(pconfig);
 
     Meta **array = get_metadata_array(L, pconfig);
 
@@ -228,6 +237,8 @@ static void profile_show_text(lua_State *L) {
 
 static void profile_show_html(lua_State *L) {
     ProfileConfig *pconfig = get_profile_config(L);
+    stdout_configure(pconfig);
+
     Meta **array = get_metadata_array(L, pconfig);
 
     render_html(L, pconfig, array, pconfig->stack_info->index - 1);
@@ -235,6 +246,8 @@ static void profile_show_html(lua_State *L) {
 
 static void profile_show_json(lua_State *L) {
     ProfileConfig *pconfig = get_profile_config(L);
+    stdout_configure(pconfig);
+
     Meta **array = get_metadata_array(L, pconfig);
 
     render_json(L, pconfig, array, pconfig->stack_info->index - 1);
