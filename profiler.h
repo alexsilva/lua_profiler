@@ -28,6 +28,7 @@ typedef struct META_INFO {
 
 typedef struct PROFILE_CONFIG {
     char *resource_dir;
+    char *stdout_filename;
     bool started;
 
     MetaInfo *meta_info;

@@ -155,15 +155,25 @@ static void profile_start(lua_State *L) {
     if (!is_dir(pconfig->resource_dir)) {
         lua_error(L, "the base directory can not be found.");
     }
-
-    /* RECORD LIMIT CONFIG */
+    /* EXTRA CONFIGS */
     lobj = lua_getparam(L, 2);
     if (lobj > 0) {
-        luaL_arg_check(L, lua_isnumber(L, lobj), 2,
-                       "Inform the minimum time results in float");
-        pconfig->record_limit = (float) lua_getnumber(L, lobj);
+        /* RECORD LIMIT CONFIG */
+        luaL_arg_check(L, lua_istable(L, lobj), 2,
+                       "enter a configurations table");
+        lua_pushobject(L, lobj);
+        lua_pushstring(L, "record_limit");
+        lua_Object lnumber = lua_gettable(L);
+        pconfig->record_limit = lua_isnumber(L, lnumber) ? ((float) lua_getnumber(L, lnumber)) : 0.001f;
+
+        /* STDOUT FILENAME CONFIG */
+        lua_pushobject(L, lobj);
+        lua_pushstring(L, "stdout_filename");
+        lua_Object lfilename = lua_gettable(L);
+        pconfig->stdout_filename = lua_isstring(L, lfilename) ? lua_getstring(L, lfilename) : NULL;
     } else {
         pconfig->record_limit = 0.001;
+        pconfig->stdout_filename = NULL;
     }
 
     /* METADATA CONFIG */
