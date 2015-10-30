@@ -138,6 +138,36 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
     }
 }
 
+static void profile_configure(lua_State *L, ProfileConfig *pconfig) {
+    /* EXTRA CONFIGS */
+    int nargs = lua_gettop(L);
+    lua_Object lobj = lua_getparam(L, nargs);
+    if (lobj > 0) {
+        /* RECORD LIMIT CONFIG */
+        luaL_arg_check(L, lua_istable(L, lobj), nargs,
+                       "enter a configurations table");
+        lua_pushobject(L, lobj);
+        lua_pushstring(L, "record_limit");
+        lua_Object lnumber = lua_gettable(L);
+        pconfig->record_limit = lua_isnumber(L, lnumber) ? ((float) lua_getnumber(L, lnumber)) : 0.001f;
+
+        /* STDOUT FILENAME CONFIG */
+        lua_pushobject(L, lobj);
+        lua_pushstring(L, "stdout_filename");
+        lua_Object lfilename = lua_gettable(L);
+        pconfig->stdout_filename = lua_isstring(L, lfilename) ? lua_getstring(L, lfilename) : NULL;
+    } else {
+        pconfig->record_limit = 0.001f;
+        pconfig->stdout_filename = NULL;
+    }
+}
+
+static void profile_reconfigure(lua_State *L) {
+    ProfileConfig *pconfig = get_profile_config(L);
+    check_start(L, pconfig);
+    profile_configure(L, pconfig);
+}
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCDFAInspection"
 static void profile_start(lua_State *L) {
@@ -156,25 +186,7 @@ static void profile_start(lua_State *L) {
         lua_error(L, "the base directory can not be found.");
     }
     /* EXTRA CONFIGS */
-    lobj = lua_getparam(L, 2);
-    if (lobj > 0) {
-        /* RECORD LIMIT CONFIG */
-        luaL_arg_check(L, lua_istable(L, lobj), 2,
-                       "enter a configurations table");
-        lua_pushobject(L, lobj);
-        lua_pushstring(L, "record_limit");
-        lua_Object lnumber = lua_gettable(L);
-        pconfig->record_limit = lua_isnumber(L, lnumber) ? ((float) lua_getnumber(L, lnumber)) : 0.001f;
-
-        /* STDOUT FILENAME CONFIG */
-        lua_pushobject(L, lobj);
-        lua_pushstring(L, "stdout_filename");
-        lua_Object lfilename = lua_gettable(L);
-        pconfig->stdout_filename = lua_isstring(L, lfilename) ? lua_getstring(L, lfilename) : NULL;
-    } else {
-        pconfig->record_limit = 0.001f;
-        pconfig->stdout_filename = NULL;
-    }
+    profile_configure(L, pconfig);
 
     /* METADATA CONFIG */
     pconfig->meta_info = (MetaInfo *) malloc(sizeof(MetaInfo));
@@ -255,11 +267,12 @@ static void profile_show_json(lua_State *L) {
 
 /* Defines the functions of the profiler api */
 static struct luaL_reg _methods[] = {
-    {"start",     profile_start},
-    {"stop",      profile_stop},
-    {"show_text", profile_show_text},
-    {"show_html", profile_show_html},
-    {"show_json", profile_show_json},
+    {"start",       profile_start},
+    {"stop",        profile_stop},
+    {"show_text",   profile_show_text},
+    {"show_html",   profile_show_html},
+    {"show_json",   profile_show_json},
+    {"reconfigure", profile_reconfigure},
     {NULL, NULL}
 };
 
