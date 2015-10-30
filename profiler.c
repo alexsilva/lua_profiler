@@ -113,14 +113,14 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
 
     } else if (pconfig->stack_info->size > 0) {
         STACK_RECORD top_record = pop(&stack);
-        STACK_RECORD *new_record = next(&stack);
+        STACK_RECORD *next_record = next(&stack);
 
         Meta *meta = top_record.meta;
         meta->measure->end = clock();
         meta->measure->time_spent = calc_time_spent(meta->measure);
 
-        if (new_record != NULL && meta->measure->time_spent >= pconfig->record_limit) {
-            Meta *_meta = new_record->meta;
+        if (next_record != NULL && meta->measure->time_spent >= pconfig->record_limit) {
+            Meta *_meta = next_record->meta;
             if (!_meta->children->list) { // already allocated ?
                 _meta->children->list = (Meta **) malloc(_meta->children->size * sizeof(Meta **));
                 if (!_meta->children->list) lua_error(L, "out of memory");
