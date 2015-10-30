@@ -181,11 +181,34 @@ static void profile_show_json(lua_State *L) {
     render_json(L, array, STACK_INDEX - 1);
 }
 
+/* Defines the functions of the profiler api */
+static struct luaL_reg _methods[] = {
+    {"start",     profile_start},
+    {"stop",      profile_stop},
+    {"show_text", profile_show_text},
+    {"show_html", profile_show_html},
+    {"show_json", profile_show_json},
+    {NULL, NULL}
+};
+
+/* set function */
+#define set_table_fn(L, ltable, name, fn)\
+    lua_pushobject(L, ltable);\
+    lua_pushstring(L, name);\
+    lua_pushcfunction(L, fn);\
+    lua_settable(L);
+
+/* Initialization function of api */
 LUA_API int luaopen_profiler(lua_State *L) {
-    lua_register(L, "profile_start", profile_start);
-    lua_register(L, "profile_stop", profile_stop);
-    lua_register(L, "profile_show_text", profile_show_text);
-    lua_register(L, "profile_show_html", profile_show_html);
-    lua_register(L, "profile_show_json", profile_show_json);
+    lua_Object ltable = lua_createtable(L);
+
+    lua_pushobject(L, ltable);
+    lua_setglobal(L, "profile");
+
+    int index = 0;
+    while (_methods[index].name) {
+        set_table_fn(L, ltable, _methods[index].name, _methods[index].func);
+        index++;
+    }
     return 0;
 }
