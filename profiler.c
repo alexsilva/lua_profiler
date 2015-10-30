@@ -12,6 +12,7 @@
 #include "stack.h"
 #include "render.h"
 #include "utils.h"
+#include "clocks.h"
 
 int PCONFIG_REF = 0;
 
@@ -99,7 +100,9 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         children->size = 20;
 
         Measure *measure = (Measure *) malloc(sizeof(Measure));
+
         measure->begin = clock();
+        lprofC_start_timer(&measure->begin);
         meta->measure = measure;
 
         stack_record.meta = meta;
@@ -116,8 +119,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         STACK_RECORD *next_record = next(&stack);
 
         Meta *meta = top_record.meta;
-        meta->measure->end = clock();
-        meta->measure->time_spent = calc_time_spent(meta->measure);
+        meta->measure->time_spent = lprofC_get_seconds(meta->measure->begin);
 
         if (next_record != NULL) {
             Meta *_meta = next_record->meta;

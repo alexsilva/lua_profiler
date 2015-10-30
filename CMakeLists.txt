@@ -16,7 +16,9 @@ set(SOURCE_FILES
         render.c
         render.h
         utils.c
-        utils.h)
+        utils.h
+        clocks.c
+        clocks.h)
 add_library(lua_profiler SHARED ${SOURCE_FILES})
 
 # =====================
