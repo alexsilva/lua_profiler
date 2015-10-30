@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "render.h"
 #include "measure.h"
+#include "profiler.h"
 
 #ifdef _WIN32
 #define SEPARATOR "\\"
@@ -37,19 +38,19 @@ static char *read_filecontent(char *filename) {
 
 static char *formatpath(char *format, char *basedir, char *filename) {
     char *fullpath = malloc(strlen(format) + strlen(basedir) + strlen(filename) + 1);
-    sprintf(fullpath, format, basedir, SEPARATOR, SEPARATOR, filename);
+    sprintf(fullpath, format, basedir, SEPARATOR, SEPARATOR, SEPARATOR, filename);
     return fullpath;
 }
 
 static char *read_resource(char *basedir, char *filename) {
-    char *fullpath = formatpath("%sprofiler%sresources%s%s", basedir, filename);
+    char *fullpath = formatpath("%s%sprofiler%sresources%s%s", basedir, filename);
     char *data = read_filecontent(fullpath);
     free(fullpath);
     return data;
 }
 
 static char *read_template(char *basedir, char *filename) {
-    char *fullpath = formatpath("%sprofiler%stemplates%s%s", basedir, filename);
+    char *fullpath = formatpath("%s%sprofiler%stemplates%s%s", basedir, filename);
     char *data = read_filecontent(fullpath);
     free(fullpath);
     return data;
@@ -57,8 +58,8 @@ static char *read_template(char *basedir, char *filename) {
 
 void body_html(lua_State *L, Meta **, int, char *);
 
-void render_html(lua_State *L, Meta **array, int size) {
-    char *basedir = luaL_check_string(L, 1);
+void render_html(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
+    char *basedir = pconfig->resource_dir;
     printf("<html>");
     printf("<head>");
 
@@ -153,8 +154,8 @@ static void _render_text(lua_State *L, Meta **array, int size,
     }
 }
 
-void render_text(lua_State *L, Meta **array, int size) {
-    char *basedir = luaL_check_string(L, 1);
+void render_text(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
+    char *basedir = pconfig->resource_dir;
     // Lua args
     lua_Object lobj = lua_getparam(L, 2);
     char *breakln = lua_isstring(L, lobj) ? lua_getstring(L, lobj) : "\n";
@@ -188,8 +189,8 @@ void _render_json(lua_State *L, Meta **array, int size, char *jsontmpl) {
     }
 }
 
-void render_json(lua_State *L, Meta **array, int size) {
-    char *basedir = luaL_check_string(L, 1);
+void render_json(lua_State *L, ProfileConfig *pconfig, Meta **array, int size) {
+    char *basedir = pconfig->resource_dir;
     char *jsontmpl = read_template(basedir, "render.json");
     _render_json(L, array, size, jsontmpl);
 }

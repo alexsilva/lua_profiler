@@ -11,22 +11,21 @@
 #include "measure.h"
 #include "stack.h"
 #include "render.h"
+#include "utils.h"
 
-bool PROFILE_INIT = false;
-
-int META_REF = 0;
-int STACK_INDEX = 0;
-int STACK_SIZE = 0;
-int MEM_BLOCKSIZE = 10;
-static float PROFILE_RECORD_TIME = 0.001;
+int PCONFIG_REF = 0;
 
 /* the stack */
 static STACK stack = NULL;
 static STACK_RECORD stack_record;
 
+static ProfileConfig *get_profile_config(lua_State *L) {
+    return lua_getuserdata(L, lua_getref(L, PCONFIG_REF));
+}
+
 /* METADATA */
-static Meta **get_metadata_array(lua_State *L) {
-    return lua_getuserdata(L, lua_getref(L, META_REF));
+static Meta **get_metadata_array(lua_State *L, ProfileConfig *pconfig) {
+    return lua_getuserdata(L, lua_getref(L, pconfig->meta_info->ref));
 }
 
 /* CLEANUP */
@@ -46,28 +45,30 @@ static void free_array(Meta **array, int size) {
     free(array);
 }
 
-static void check_start(lua_State *L) {
-    if (!PROFILE_INIT)
-        lua_error(L, "profile not started. call 'profile_start' first!");
+static void check_start(lua_State *L, ProfileConfig *pconfig) {
+    if (!pconfig || !pconfig->started)
+        lua_error(L, "profile not started. call 'profile.start' first!");
 }
 
 /* CALL FUNCTION HOOK */
 static void callhook(lua_State *L, lua_Function func, char *file, int line) {
-    check_start(L);
-    Meta **array = get_metadata_array(L);
+    ProfileConfig *pconfig = get_profile_config(L);
+    check_start(L, pconfig);
+
+    Meta **array = get_metadata_array(L, pconfig);
     if (!array) return; // check if exists (call profile_stop ?)
 
-    if (STACK_INDEX > MEM_BLOCKSIZE - 1) {
+    if (pconfig->stack_info->index > pconfig->meta_info->mbuffsize - 1) {
         // Reached memory limit, relocated to double.
-        int blocksize = MEM_BLOCKSIZE * 2;
+        // Updates the size of the memory block.
+        pconfig->meta_info->mbuffsize *= 2;
 
-        array = realloc(array, blocksize * sizeof(Meta **));
+        array = realloc(array, pconfig->meta_info->mbuffsize * sizeof(Meta **));
 
         if (array) {
-            lua_unref(L, META_REF); // Remove the old reference (new block of memory).
+            lua_unref(L, pconfig->meta_info->ref); // Remove the old reference (new block of memory).
             lua_pushuserdata(L, array); // Saves the new reference.
-            META_REF = lua_ref(L, 1);
-            MEM_BLOCKSIZE = blocksize; // Updates the size of the memory block.
+            pconfig->meta_info->ref = lua_ref(L, 1);
         } else {
             lua_error(L, "profiler: out of memory!");
             return; // suppress inspect
@@ -88,7 +89,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
             meta->fun_scope = "unknown";
         }
         meta->func_file = file ? file : "unnamed";
-        meta->stack_level = STACK_SIZE;
+        meta->stack_level = pconfig->stack_info->size;
         meta->line = line;
 
         Children *children = (Children *) malloc(sizeof(Children));
@@ -104,13 +105,13 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         stack_record.meta = meta;
         push(&stack, stack_record);
 
-        if (STACK_SIZE == 0) {
-            array[STACK_INDEX] = meta;
-            STACK_INDEX++;
+        if (pconfig->stack_info->size == 0) {
+            array[pconfig->stack_info->index] = meta;
+            pconfig->stack_info->index++;
         }
-        STACK_SIZE++;
+        pconfig->stack_info->size++;
 
-    } else if (STACK_SIZE > 0) {
+    } else if (pconfig->stack_info->size > 0) {
         STACK_RECORD top_record = pop(&stack);
         STACK_RECORD *new_record = next(&stack);
 
@@ -118,7 +119,7 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
         meta->measure->end = clock();
         meta->measure->time_spent = calc_time_spent(meta->measure);
 
-        if (new_record != NULL && meta->measure->time_spent >= PROFILE_RECORD_TIME) {
+        if (new_record != NULL && meta->measure->time_spent >= pconfig->record_limit) {
             Meta *_meta = new_record->meta;
             if (!_meta->children->list) { // already allocated ?
                 _meta->children->list = (Meta **) malloc(_meta->children->size * sizeof(Meta **));
@@ -133,52 +134,100 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
             _meta->children->list[_meta->children->index] = meta;
             _meta->children->index++;
         }
-        STACK_SIZE--;
+        pconfig->stack_info->size--;
     }
 }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCDFAInspection"
 static void profile_start(lua_State *L) {
-    if (PROFILE_INIT)
+    if (PCONFIG_REF != 0)
         return; // already started.
+
+    ProfileConfig *pconfig = (ProfileConfig *) malloc(sizeof(ProfileConfig));
+    if (!pconfig) lua_error(L, "out of memory");
+
+    /* RESOURCE DIR CONFIG */
     lua_Object lobj = lua_getparam(L, 1);
-    if (lobj > 0) {
-        luaL_arg_check(L, lua_isnumber(L, lobj), 1,
-                       "Inform the minimum time results in float");
-        PROFILE_RECORD_TIME = (float) lua_getnumber(L, lobj);
+    luaL_arg_check(L, lua_isstring(L, lobj), 1,
+                   "enter the path to the base directory.");
+    pconfig->resource_dir = lua_getstring(L, lobj);
+    if (!is_dir(pconfig->resource_dir)) {
+        lua_error(L, "the base directory can not be found.");
     }
-    Meta **meta = (Meta **) malloc(MEM_BLOCKSIZE * sizeof(Meta **));
+
+    /* RECORD LIMIT CONFIG */
+    lobj = lua_getparam(L, 2);
+    if (lobj > 0) {
+        luaL_arg_check(L, lua_isnumber(L, lobj), 2,
+                       "Inform the minimum time results in float");
+        pconfig->record_limit = (float) lua_getnumber(L, lobj);
+    } else {
+        pconfig->record_limit = 0.001;
+    }
+
+    /* METADATA CONFIG */
+    pconfig->meta_info = (MetaInfo *) malloc(sizeof(MetaInfo));
+    if (!pconfig->meta_info) lua_error(L, "out of memory");
+
+    pconfig->meta_info->mbuffsize = 10;
+    Meta **meta = (Meta **) malloc(pconfig->meta_info->mbuffsize * sizeof(Meta **));
 
     lua_pushuserdata(L, meta);
-    META_REF = lua_ref(L, 1);
+    pconfig->meta_info->ref = lua_ref(L, 1);
+
+    /* STACK INFO CONFIG */
+    pconfig->stack_info = malloc(sizeof(StackInfo));
+    if (!pconfig->stack_info) lua_error(L, "out of memory");
+    pconfig->stack_info->index = 0;
+    pconfig->stack_info->size = 0;
+
+    pconfig->started = true; // profile started
+
+    lua_pushuserdata(L, pconfig);
+    PCONFIG_REF = lua_ref(L, 1);
 
     lua_setcallhook(L, callhook);
-    PROFILE_INIT = true;
 }
 
 static void profile_stop(lua_State *L) {
-    check_start(L);
+    ProfileConfig *pconfig = get_profile_config(L);
+    check_start(L, pconfig);
+
     lua_setcallhook(L, NULL); // disable hook
-    free_array(get_metadata_array(L), STACK_INDEX);
-    lua_unref(L, META_REF); // Remove the old reference (new block of memory).
-    PROFILE_INIT = false;
+
+    free_array(get_metadata_array(L, pconfig), pconfig->stack_info->index);
+    lua_unref(L, pconfig->meta_info->ref);
+
+    free(pconfig->meta_info);
+    free(pconfig->stack_info);
+
+    lua_unref(L, PCONFIG_REF);
+
+    free(pconfig);
 }
 
 static void profile_show_text(lua_State *L) {
-    check_start(L);
+    ProfileConfig *pconfig = get_profile_config(L);
+    check_start(L, pconfig);
 
-    Meta **array = get_metadata_array(L);
+    Meta **array = get_metadata_array(L, pconfig);
 
-    render_text(L, array, STACK_INDEX - 1);
+    render_text(L, pconfig, array, pconfig->stack_info->index - 1);
 }
 
 static void profile_show_html(lua_State *L) {
-    Meta **array = get_metadata_array(L);
-    render_html(L, array, STACK_INDEX - 1);
+    ProfileConfig *pconfig = get_profile_config(L);
+    Meta **array = get_metadata_array(L, pconfig);
+
+    render_html(L, pconfig, array, pconfig->stack_info->index - 1);
 }
 
 static void profile_show_json(lua_State *L) {
-    Meta **array = get_metadata_array(L);
-    render_json(L, array, STACK_INDEX - 1);
+    ProfileConfig *pconfig = get_profile_config(L);
+    Meta **array = get_metadata_array(L, pconfig);
+
+    render_json(L, pconfig, array, pconfig->stack_info->index - 1);
 }
 
 /* Defines the functions of the profiler api */

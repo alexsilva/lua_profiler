@@ -39,11 +39,4 @@ struct META {
 float calc_time_spent(Measure *measure);
 float calc_elapsed_time(clock_t start, clock_t end);
 
-extern int META_REF;
-extern int STACK_INDEX;
-extern int STACK_SIZE;
-extern int MEM_BLOCKSIZE;
-extern bool PROFILE_INIT;
-extern clock_t PROFILE_START_TIME;
-
 #endif //LUA_PROFILER_MEASURE_H
