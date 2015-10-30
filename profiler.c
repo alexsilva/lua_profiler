@@ -18,7 +18,6 @@ int META_REF = 0;
 int STACK_INDEX = 0;
 int STACK_SIZE = 0;
 int MEM_BLOCKSIZE = 10;
-clock_t PROFILE_START_TIME;
 static float PROFILE_RECORD_TIME = 0.001;
 
 /* the stack */
@@ -153,7 +152,6 @@ static void profile_start(lua_State *L) {
     META_REF = lua_ref(L, 1);
 
     lua_setcallhook(L, callhook);
-    PROFILE_START_TIME = clock();
     PROFILE_INIT = true;
 }
 
