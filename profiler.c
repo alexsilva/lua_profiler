@@ -258,23 +258,22 @@ static void profile_show_html(lua_State *L) {
     render_html(L, pconfig, array, pconfig->stack_info->index - 1);
 }
 
-static char *profile_as_json(lua_State *L) {
-    ProfileConfig *pconfig = get_profile_config(L);
-    stdout_configure(pconfig);
-
+static char *profile_as_json(lua_State *L, ProfileConfig *pconfig) {
     Meta **array = get_metadata_array(L, pconfig);
-
     return render_json(L, pconfig, array, pconfig->stack_info->index - 1);
 }
 
 static void lprofile_as_json(lua_State *L) {
-    char *jsonvl = profile_as_json(L);
+    ProfileConfig *pconfig = get_profile_config(L);
+    char *jsonvl = profile_as_json(L, pconfig);
     lua_pushstring(L, jsonvl);
     free(jsonvl);
 }
 
 static void profile_show_json(lua_State *L) {
-    char *jsonvl = profile_as_json(L);
+    ProfileConfig *pconfig = get_profile_config(L);
+    char *jsonvl = profile_as_json(L, pconfig);
+    stdout_configure(pconfig);
     printf("%s", jsonvl);
     free(jsonvl);
 }
