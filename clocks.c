@@ -62,5 +62,9 @@ static clock_t get_clocks(clock_t time_marker) {
 float lprofC_get_seconds(clock_t time_marker) {
     clock_t clocks;
     clocks = get_clocks(time_marker);
+#ifndef _WIN32
+    return ((float) clocks / (float) CLOCKS_PER_SEC) * 10000;
+#else
     return (float)clocks / (float)CLOCKS_PER_SEC;
+#endif
 }

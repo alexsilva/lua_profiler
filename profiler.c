@@ -101,7 +101,6 @@ static void callhook(lua_State *L, lua_Function func, char *file, int line) {
 
         Measure *measure = (Measure *) malloc(sizeof(Measure));
 
-        measure->begin = clock();
         lprofC_start_timer(&measure->begin);
         meta->measure = measure;
 
