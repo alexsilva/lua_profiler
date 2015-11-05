@@ -226,6 +226,7 @@ static void profile_stop(lua_State *L) {
     free(pconfig->stack_info);
 
     lua_unref(L, PCONFIG_REF);
+    PCONFIG_REF = 0;
 
     free(pconfig);
 }
