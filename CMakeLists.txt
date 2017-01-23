@@ -31,10 +31,9 @@ set(SOURCE_FILES
 
 add_library(lua_profiler MODULE ${SOURCE_FILES})
 
-# =====================
-set_target_properties(lua_profiler PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-# =====================
-
 if (WIN32)
+    set_target_properties(lua_profiler PROPERTIES PREFIX "")
     target_link_libraries(lua_profiler lualib32ng lua32ng)
+else()
+    set_target_properties(lua_profiler PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 endif()
