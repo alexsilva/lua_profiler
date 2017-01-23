@@ -3,8 +3,12 @@ project(lua_profiler)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
+# Lua
 include_directories(${LUA_INCLUDE_DIR})
-include_directories(${LUA_INCLUDE_EXTRA})
+
+if (WIN32)
+    link_directories(${LUA_LIBRARIES})
+endif()
 
 include_directories(json-builder)
 include_directories(json-parser)
@@ -28,9 +32,9 @@ set(SOURCE_FILES
 add_library(lua_profiler MODULE ${SOURCE_FILES})
 
 # =====================
-set_target_properties(lua_profiler PROPERTIES
-        COMPILE_FLAGS "-m32"
-        LINK_FLAGS    "-m32")
+set_target_properties(lua_profiler PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 # =====================
 
-target_link_libraries(lua_profiler ${LUA_LIBRARY})
+if (WIN32)
+    target_link_libraries(lua_profiler lualib32ng lua32ng)
+endif()
