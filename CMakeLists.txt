@@ -25,7 +25,7 @@ set(SOURCE_FILES
         json-builder/json-builder.c
         json-parser/json.c)
 
-add_library(lua_profiler SHARED ${SOURCE_FILES})
+add_library(lua_profiler MODULE ${SOURCE_FILES})
 
 # =====================
 set_target_properties(lua_profiler PROPERTIES
