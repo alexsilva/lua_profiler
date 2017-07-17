@@ -29,11 +29,15 @@ set(SOURCE_FILES
         json-builder/json-builder.c
         json-parser/json.c)
 
-add_library(lua_profiler MODULE ${SOURCE_FILES})
+add_library(lprofiler MODULE ${SOURCE_FILES})
 
 if (WIN32)
-    set_target_properties(lua_profiler PROPERTIES PREFIX "")
-    target_link_libraries(lua_profiler lualib32ng lua32ng)
+    set_target_properties(lprofiler PROPERTIES PREFIX "")
+    if (WSGI_ENVIRON)
+        target_link_libraries(lprofiler lualib32ngw lua32ngw)
+    else()
+        target_link_libraries(lprofiler lualib32ng lua32ng)
+    endif()
 else()
-    set_target_properties(lua_profiler PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    set_target_properties(lprofiler PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 endif()
