@@ -5,10 +5,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 # Lua
 include_directories(${LUA_INCLUDE_DIR})
-
-if (WIN32)
-    link_directories(${LUA_LIBRARIES})
-endif()
+link_directories(${LUA_LIBRARIES})
 
 include_directories(json-builder)
 include_directories(json-parser)
@@ -33,9 +30,7 @@ add_library(lprofiler MODULE ${SOURCE_FILES})
 
 if (WIN32)
     set_target_properties(lprofiler PROPERTIES PREFIX "")
-    if (WSGI_ENVIRON)
-        target_link_libraries(lprofiler lualib32ngw lua32ngw)
-    else()
-        target_link_libraries(lprofiler lualib32ng lua32ng)
-    endif()
+    target_link_libraries(lprofiler lualib32ngw lua32ngw)
+else()
+    target_link_libraries(lprofiler lua)
 endif()
